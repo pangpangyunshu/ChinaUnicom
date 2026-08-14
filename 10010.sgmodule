@@ -1,0 +1,26 @@
+#!name=ChinaUnicom Usage V4
+#!desc=Surge + BoxJs ChinaUnicom V4 scripts, hosted from your own GitHub repository.
+#!arguments=cronexp:*/30 * * * *,cron:10010v4-cron,capture:10010v4-capture,panel:10010v4-panel
+#!arguments-desc=cronexp\n\nCron expression. Default: every 30 minutes.\n\ncron\n\nCustom cron script name. Set to # to disable cron.\n\npanel\n\nCustom panel name. Set to # to disable panel.\n\ncapture\n\nCustom capture script name. Set to # to disable capture.
+
+[General]
+force-http-engine-hosts = %APPEND% 10010v4.com, m.client.10010.com
+
+[Script]
+# > Response capture
+{{{capture}}} = type=http-response,pattern=^https?:\/\/(m\.client|loginxhm)\.10010\.com\/mobileService\/onLine\.htm,script-path=https://raw.githubusercontent.com/pangpangyunshu/ChinaUnicom/main/10010_capture.js,requires-body=true,max-size=0,timeout=120
+
+# > Cron query
+{{{cron}}} = type=cron,cronexp="{{{cronexp}}}",timeout=120,script-path=https://raw.githubusercontent.com/pangpangyunshu/ChinaUnicom/main/10010.js
+
+# > BoxJs request bridge
+10010v4-request = type=http-request,pattern=^https?:\/\/10010v4\.com,script-path=https://raw.githubusercontent.com/pangpangyunshu/ChinaUnicom/main/10010.js,requires-body=false,max-size=0,timeout=120
+
+# > Surge panel
+10010v4-panel = type=generic,timeout=120,script-path=https://raw.githubusercontent.com/pangpangyunshu/ChinaUnicom/main/10010.js,argument=icon=arrow.up.arrow.down.circle&icon-color=#5d84f8
+
+[MITM]
+hostname = %APPEND% 10010v4.com, m.client.10010.com, loginxhm.10010.com
+
+[Panel]
+{{{panel}}} = script-name=10010v4-panel,update-interval=300
