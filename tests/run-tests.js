@@ -303,6 +303,10 @@ async function testTokenRecovery() {
   assert.strictEqual(store.token_online, "fresh-token");
   assert.match(store.cookie, /sid=fresh/);
   assert.ok(JSON.parse(store.last).packages);
+  assert.strictEqual(result.value.ok, true);
+  assert.strictEqual(result.value.authMethod, "token");
+  assert.strictEqual(result.value.packageCount, 2);
+  assert.ok(result.value.elapsed);
   assert.doesNotMatch(result.logs.join("\n"), /fresh-token|sid=fresh/);
 }
 
@@ -342,12 +346,26 @@ async function testPasswordRecovery() {
   assert.doesNotMatch(loginBody, /13000000000|example-password/);
   assert.match(loginBody, /mobile=[A-Za-z0-9%+/]+/);
   assert.match(readAppStore(result.storage).cookie, /sid=password-login/);
+  assert.strictEqual(result.value.ok, true);
+  assert.strictEqual(result.value.authMethod, "password");
 }
 
 async function testMissingCredentialsIsHandled() {
   const result = await executeScript(MAIN);
   assert.strictEqual(result.notifications.length, 1);
   assert.match(result.notifications[0].body, /登录信息不可用/);
+  assert.strictEqual(result.value.ok, false);
+  assert.strictEqual(result.value.kind, "auth");
+  assert.strictEqual(result.value.status, 401);
+  [
+    "hasCookie",
+    "hasToken",
+    "hasAppId",
+    "hasMobile",
+    "hasPassword",
+    "hasRootStore",
+    "hasAppStore",
+  ].forEach((key) => assert.strictEqual(result.value[key], false));
 }
 
 const tests = [

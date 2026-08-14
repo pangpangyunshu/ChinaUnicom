@@ -52,6 +52,7 @@ BoxJs 中的 Surge API 地址仍使用：
 - Panel、定时任务、抓包脚本和 /data 接口有明确独立的运行分支。
 - Panel 与 BoxJs 数据查询不会覆盖定时任务的流量差值基线。
 - Cookie、Token、手机号和服务密码不会写入普通日志。
+- Cron 输出会返回成功摘要；失败时返回错误类型、状态码和非敏感的配置读取诊断，不再用空对象掩盖原因。
 - Cookie 合并兼容大小写 Header、数组形式的 Set-Cookie 和空 Header。
 - Cookie 失效码判断、HTTP 状态、超时和非 JSON 响应均有明确错误信息。
 - 服务密码登录只保留所需的 RSA 实现，大幅缩小脚本体积。

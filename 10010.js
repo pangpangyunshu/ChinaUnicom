@@ -83,6 +83,7 @@ async function main() {
   }
 
   var result = await buildResult(parsed);
+  result.authMethod = queryResult.authMethod || "unknown";
   result.elapsed = formatDuration((Date.now() - STARTED_AT) / 1000);
   log("执行完成，用时 " + result.elapsed);
   return result;
@@ -94,7 +95,11 @@ async function queryWithRecovery(credentials) {
   if (credentials.cookie) {
     try {
       var direct = await queryUsage(credentials.cookie);
-      return { data: direct, cookie: credentials.cookie };
+      return {
+        data: direct,
+        cookie: credentials.cookie,
+        authMethod: "cookie",
+      };
     } catch (error) {
       if (!isAuthError(error)) throw error;
       recoveryErrors.push(error);
@@ -106,7 +111,11 @@ async function queryWithRecovery(credentials) {
     try {
       var refreshed = await refreshOnline(credentials);
       var tokenData = await queryUsage(refreshed.cookie);
-      return { data: tokenData, cookie: refreshed.cookie };
+      return {
+        data: tokenData,
+        cookie: refreshed.cookie,
+        authMethod: "token",
+      };
     } catch (error) {
       recoveryErrors.push(error);
       log("Token 刷新失败，继续检查服务密码登录");
@@ -117,7 +126,11 @@ async function queryWithRecovery(credentials) {
     try {
       var signedIn = await passwordLogin(credentials);
       var passwordData = await queryUsage(signedIn.cookie);
-      return { data: passwordData, cookie: signedIn.cookie };
+      return {
+        data: passwordData,
+        cookie: signedIn.cookie,
+        authMethod: "password",
+      };
     } catch (error) {
       recoveryErrors.push(error);
     }
@@ -649,7 +662,16 @@ async function finishSuccess(result) {
     return done(jsonResponse(200, result));
   }
 
-  return done({});
+  return done({
+    ok: result.ok !== false,
+    title: result.title || APP.title,
+    subt: result.subt || "",
+    desc: result.desc || "",
+    authMethod: result.authMethod || "unknown",
+    packageCount: Number(result.packageCount) || 0,
+    sourceTime: result.sourceTime || "",
+    elapsed: result.elapsed || formatDuration((Date.now() - STARTED_AT) / 1000),
+  });
 }
 
 async function finishFailure(error) {
@@ -677,7 +699,17 @@ async function finishFailure(error) {
   }
 
   localNotification(APP.title, "执行失败", message);
-  return done({});
+  return done(
+    Object.assign(
+      {
+        ok: false,
+        error: message,
+        kind: error && error.kind ? error.kind : "runtime",
+        status: error && error.status ? Number(error.status) : 502,
+      },
+      credentialDiagnostics(),
+    ),
+  );
 }
 
 function requestJson(options) {
@@ -820,6 +852,21 @@ function readCredentials() {
     password: String(readValue("password") || ""),
     cookie: String(readValue("cookie") || ""),
     tokenOnline: String(readValue("token_online") || ""),
+  };
+}
+
+function credentialDiagnostics() {
+  var credentials = readCredentials();
+  var root = readRoot();
+  var appStore = root[APP.name];
+  return {
+    hasCookie: !!credentials.cookie,
+    hasToken: !!credentials.tokenOnline,
+    hasAppId: !!credentials.appId,
+    hasMobile: !!credentials.mobile,
+    hasPassword: !!credentials.password,
+    hasRootStore: Object.keys(root).length > 0,
+    hasAppStore: !!(appStore && typeof appStore === "object"),
   };
 }
 
